@@ -10,111 +10,139 @@ pub const Tetramino = union(enum) {
 
     pub fn init(char: u8) Tetramino {
         return switch (char) {
-            'I' => .{ .I = I_piece.init(1, 4)},
-            'O' => .{ .O = O_piece.init(0, 4)},
-            'J' => .{ .J = J_piece.init(1, 4)},
-            'L' => .{ .L = L_piece.init(1, 4)},
-            'T' => .{ .T = T_piece.init(1, 4)},
-            'S' => .{ .S = S_piece.init(1, 4)},
-            'Z' => .{ .Z = Z_piece.init(1, 4)},
+            'I' => .{ .I = I_piece.init(1, 4, .{ .{1, 0}, .{1, 2}, .{1, 3} })},
+            'O' => .{ .O = O_piece.init(0, 4, .{ .{2, 1}, .{1, 2}, .{2, 2} })},
+            'J' => .{ .J = J_piece.init(1, 4, .{ .{0, 0}, .{1, 0}, .{1, 2} })},
+            'L' => .{ .L = L_piece.init(1, 4, .{ .{1, 0}, .{1, 2}, .{0, 2} })},
+            'T' => .{ .T = T_piece.init(1, 4, .{ .{1, 0}, .{0, 1}, .{1, 2} })},
+            'S' => .{ .S = S_piece.init(1, 4, .{ .{1, 0}, .{0, 1}, .{0, 2} })},
+            'Z' => .{ .Z = Z_piece.init(1, 4, .{ .{0, 0}, .{0, 1}, .{1, 2} })},
             else => unreachable, 
         };
     }
 
-    pub fn rot_CW(self: *Tetramino) void {
+    pub fn rot_CW(self: *Tetramino, wall_kick: [2]isize) void {
         switch (self.*) {
-            .I => |*piece| piece.rot_CW(),
+            .I => |*piece| piece.rot_CW(wall_kick),
             .O => {},
-            .J => |*piece| piece.rot_CW(),
-            .L => |*piece| piece.rot_CW(),
-            .T => |*piece| piece.rot_CW(),
-            .S => |*piece| piece.rot_CW(),
-            .Z => |*piece| piece.rot_CW(),
+            .J, .L, .T, .S, .Z => |*piece| piece.rot_CW(wall_kick),
         }
     }
 
-    pub fn rot_CCW(self: *Tetramino) void {
+    pub fn rot_CCW(self: *Tetramino, wall_kick: [2]isize) void {
         switch (self.*) {
-            .I => |*piece| piece.rot_CCW(),
+            .I => |*piece| piece.rot_CCW(wall_kick),
             .O => {},
-            .J => |*piece| piece.rot_CCW(),
-            .L => |*piece| piece.rot_CCW(),
-            .T => |*piece| piece.rot_CCW(),
-            .S => |*piece| piece.rot_CCW(),
-            .Z => |*piece| piece.rot_CCW(),
+            .J, .L, .T, .S, .Z => |*piece| piece.rot_CCW(wall_kick),
         }
     }
 
     pub fn move_down(self: *Tetramino) void {
         switch (self.*) {
-            .I => |*piece| piece.move_down(),
-            .O => |*piece| piece.move_down(),
-            .J => |*piece| piece.move_down(),
-            .L => |*piece| piece.move_down(),
-            .T => |*piece| piece.move_down(),
-            .S => |*piece| piece.move_down(),
-            .Z => |*piece| piece.move_down(),
+            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.move_down(),
         }
     }
 
     pub fn move_left(self: *Tetramino) void {
         switch (self.*) {
-            .I => |*piece| piece.move_left(),
-            .O => |*piece| piece.move_left(),
-            .J => |*piece| piece.move_left(),
-            .L => |*piece| piece.move_left(),
-            .T => |*piece| piece.move_left(),
-            .S => |*piece| piece.move_left(),
-            .Z => |*piece| piece.move_left(),
+            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.move_left(),
         }
     }
 
     pub fn move_right(self: *Tetramino) void {
         switch (self.*) {
-            .I => |*piece| piece.move_right(),
-            .O => |*piece| piece.move_right(),
-            .J => |*piece| piece.move_right(),
-            .L => |*piece| piece.move_right(),
-            .T => |*piece| piece.move_right(),
-            .S => |*piece| piece.move_right(),
-            .Z => |*piece| piece.move_right(),
+            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.move_right(),
         }
     }
 
     pub fn get_blocks(self: *Tetramino) [4][2]usize {
         return switch (self.*) {
-            .I => |*piece| piece.get_blocks(),
-            .O => |*piece| piece.get_blocks(),
-            .J => |*piece| piece.get_blocks(),
-            .L => |*piece| piece.get_blocks(),
-            .T => |*piece| piece.get_blocks(),
-            .S => |*piece| piece.get_blocks(),
-            .Z => |*piece| piece.get_blocks(),
+            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.get_blocks(),
         };
     }
 
     pub fn isOccupied(self: *Tetramino, col: usize, row: usize) bool {
         return switch (self.*) {
-            .I => |*piece| piece.isOccupied(row, col),
-            .O => |*piece| piece.isOccupied(row, col),
-            .J => |*piece| piece.isOccupied(row, col),
-            .L => |*piece| piece.isOccupied(row, col),
-            .T => |*piece| piece.isOccupied(row, col),
-            .S => |*piece| piece.isOccupied(row, col),
-            .Z => |*piece| piece.isOccupied(row, col),
+            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.isOccupied(row, col),
+        };
+    }
+
+// J, L, S, T, Z Tetromino Wall Kick Data
+//           Test 1    Test 2    Test 3    Test 4    Test 5
+// 0->R .{ .{ 0, 0}, .{0, -1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} }
+// R->2 .{ .{ 0, 0}, .{0,  1}, .{-1, 1}, .{ 2, 0}, .{ 2, 1} }
+// L->0 .{ .{ 0, 0}, .{0, -1}, .{-1,-1}, .{ 2, 0}, .{ 2,-1} }
+// 2->L .{ .{ 0, 0}, .{0,  1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} }
+// 0->L .{ .{ 0, 0}, .{0,  1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} }
+// R->0 .{ .{ 0, 0}, .{0,  1}, .{-1, 1}, .{ 2, 0}, .{ 2, 1} }
+// L->2 .{ .{ 0, 0}, .{0, -1}, .{-1,-1}, .{ 2, 0}, .{ 2,-1} }
+// 2->R .{ .{ 0, 0}, .{0, -1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} }
+
+//     I Tetromino Wall Kick Data
+//           Test 1    Test 2    Test 3    Test 4    Test 5
+// 0->R .{ .{ 0, 0}, .{ 0,-2}, .{ 0, 1}, .{-1,-2}, .{ 2, 1} }
+// R->2 .{ .{ 0, 0}, .{ 0,-1}, .{ 0, 2}, .{ 2,-1}, .{-1, 2} } 
+// L->0 .{ .{ 0, 0}, .{ 0, 1}, .{ 0,-2}, .{-2, 1}, .{ 1,-2} } 
+// 2->L .{ .{ 0, 0}, .{ 0, 2}, .{ 0,-1}, .{ 1, 2}, .{-2,-1} } 
+// 0->L .{ .{ 0, 0}, .{ 0,-1}, .{ 0, 2}, .{ 2,-1}, .{-1, 2} } 
+// R->0 .{ .{ 0, 0}, .{ 0, 2}, .{ 0,-1}, .{ 1, 2}, .{-2,-1} } 
+// L->2 .{ .{ 0, 0}, .{ 0,-2}, .{ 0, 1}, .{-1,-2}, .{ 2, 1} } 
+// 2->R .{ .{ 0, 0}, .{ 0, 1}, .{ 0,-2}, .{-2, 1}, .{ 1,-2} } 
+
+    pub fn wallKickCW(self: *Tetramino) [5][2]isize {
+        return switch (self.*) {
+            .I => |piece| {
+                return switch (piece.orientation) {
+                    .Spawn =>            .{ .{ 0, 0}, .{ 0,-2}, .{ 0, 1}, .{-1,-2}, .{ 2, 1} },
+                    .Clockwise =>        .{ .{ 0, 0}, .{ 0,-1}, .{ 0, 2}, .{ 2,-1}, .{-1, 2} },
+                    .CounterClockwise => .{ .{ 0, 0}, .{ 0, 1}, .{ 0,-2}, .{-2, 1}, .{ 1,-2} },
+                    .DoubleRotated =>    .{ .{ 0, 0}, .{ 0, 2}, .{ 0,-1}, .{ 1, 2}, .{-2,-1} },
+                };
+            },
+            .O => return .{ .{0} ** 2 } ** 5,
+            .J, .L, .T, .S, .Z => |piece| {
+                return switch (piece.orientation) {
+                    .Spawn =>            .{ .{ 0, 0}, .{0, -1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} },
+                    .Clockwise =>        .{ .{ 0, 0}, .{0,  1}, .{-1, 1}, .{ 2, 0}, .{ 2, 1} },
+                    .CounterClockwise => .{ .{ 0, 0}, .{0, -1}, .{-1,-1}, .{ 2, 0}, .{ 2,-1} },
+                    .DoubleRotated =>    .{ .{ 0, 0}, .{0,  1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} },
+                };
+            },
+        };
+    }
+
+    pub fn wallKickCCW(self: *Tetramino) [5][2]isize {
+        return switch (self.*) {
+            .I => |piece| {
+                return switch (piece.orientation) {
+                    .Spawn =>            .{ .{ 0, 0}, .{ 0,-1}, .{ 0, 2}, .{ 2,-1}, .{-1, 2} },
+                    .Clockwise =>        .{ .{ 0, 0}, .{ 0, 2}, .{ 0,-1}, .{ 1, 2}, .{-2,-1} },
+                    .CounterClockwise => .{ .{ 0, 0}, .{ 0,-2}, .{ 0, 1}, .{-1,-2}, .{ 2, 1} },
+                    .DoubleRotated =>    .{ .{ 0, 0}, .{ 0, 1}, .{ 0,-2}, .{-2, 1}, .{ 1,-2} },
+                };
+            },
+            .O => .{ .{0} ** 2 } ** 5,
+            .J, .L, .T, .S, .Z => |piece| {
+                return switch (piece.orientation) {
+                    .Spawn =>            .{ .{ 0, 0}, .{0,  1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} },
+                    .Clockwise =>        .{ .{ 0, 0}, .{0,  1}, .{-1, 1}, .{ 2, 0}, .{ 2, 1} },
+                    .CounterClockwise => .{ .{ 0, 0}, .{0, -1}, .{-1,-1}, .{ 2, 0}, .{ 2,-1} },
+                    .DoubleRotated =>    .{ .{ 0, 0}, .{0, -1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} },
+                };
+            },
         };
     }
 
 };
 
-const Orientation = enum{
+pub const Orientation = enum{
     Spawn,
     Clockwise,
     CounterClockwise,
     DoubleRotated,
 };
 
-pub fn GenericPiece(block_pos: [3][2]usize) type {
+pub fn GenericPiece() type {
     return struct{
         const Self = @This();
 
@@ -123,9 +151,9 @@ pub fn GenericPiece(block_pos: [3][2]usize) type {
         orientation: Orientation,
         block_pos: [3][2]usize,
 
-        pub fn init(row: usize, col: usize) Self {
+        pub fn init(row: usize, col: usize, block_pos: [3][2]usize) Self {
             var tmp_blk_pos: [3][2]usize = undefined;
-            for (0..3) |i| {
+            for (0..tmp_blk_pos.len) |i| {
                 tmp_blk_pos[i][1] = col + block_pos[i][1] - 1;
                 tmp_blk_pos[i][0] = row + block_pos[i][0] - 1;
             }
@@ -137,12 +165,20 @@ pub fn GenericPiece(block_pos: [3][2]usize) type {
             };
         }
 
-        pub fn rot_CW(self: *Self) void {
+        pub fn rot_CW(self: *Self, wall_kick: [2]isize) void {
             var tmp_blk_pos: [3][2]usize = undefined;
-            for (0..3) |i| {
-                tmp_blk_pos[i][1] = self.col + self.row - self.block_pos[i][0];
-                tmp_blk_pos[i][0] = self.block_pos[i][1] + self.row - self.col;
+            for (0..tmp_blk_pos.len) |i| {
+                tmp_blk_pos[i][1] = u_plus_i(
+                    self.col + self.row - self.block_pos[i][0],
+                    wall_kick[1]
+                );
+                tmp_blk_pos[i][0] = u_plus_i(
+                    self.block_pos[i][1] + self.row - self.col,
+                    wall_kick[0]
+                );
             }
+            self.row = u_plus_i(self.row, wall_kick[0]);
+            self.col = u_plus_i(self.col, wall_kick[1]);
             self.block_pos = tmp_blk_pos;
             switch (self.orientation) {
                 .Spawn => {
@@ -154,12 +190,19 @@ pub fn GenericPiece(block_pos: [3][2]usize) type {
             }
         }
 
-        pub fn rot_CCW(self: *Self) void {
+        pub fn rot_CCW(self: *Self, wall_kick: [2]isize) void {
             var tmp_blk_pos: [3][2]usize = undefined;
-            for (0..3) |i| {
-                tmp_blk_pos[i][1] = self.block_pos[i][0] + self.col - self.row;
-                tmp_blk_pos[i][0] = self.row + self.col - self.block_pos[i][1];
+            for (0..tmp_blk_pos.len) |i| {
+                tmp_blk_pos[i][1] = u_plus_i(
+                    self.block_pos[i][0] + self.col - self.row,
+                    wall_kick[1]
+                );
+                tmp_blk_pos[i][0] = u_plus_i(
+                    self.row + self.col - self.block_pos[i][1], wall_kick[0]
+                );
             }
+            self.row = u_plus_i(self.row, wall_kick[0]);
+            self.col = u_plus_i(self.col, wall_kick[1]);
             self.block_pos = tmp_blk_pos;
             switch (self.orientation) {
                 .Spawn => self.orientation = .CounterClockwise,
@@ -171,21 +214,21 @@ pub fn GenericPiece(block_pos: [3][2]usize) type {
 
         pub fn move_down(self: *Self) void {
             self.row += 1;
-            for (0..3) |i| {
+            for (0..self.block_pos.len) |i| {
                 self.block_pos[i][0] += 1;
             }
         }
 
         pub fn move_left(self: *Self) void {
             self.col -= 1;
-            for (0..3) |i| {
+            for (0..self.block_pos.len) |i| {
                 self.block_pos[i][1] -= 1;
             }
         }
 
         pub fn move_right(self: *Self) void {
             self.col += 1;
-            for (0..3) |i| {
+            for (0..self.block_pos.len) |i| {
                 self.block_pos[i][1] += 1;
             }
         }
@@ -202,7 +245,7 @@ pub fn GenericPiece(block_pos: [3][2]usize) type {
         pub fn isOccupied(self: *Self, col: usize, row: usize) bool {
             const blockpos = self.get_blocks();
 
-            inline for (0..4) |i| {
+            inline for (0..blockpos.len) |i| {
                 if ((blockpos[i][1] == col) and (blockpos[i][0] == row)) {
                     return true;
                 }
@@ -213,11 +256,20 @@ pub fn GenericPiece(block_pos: [3][2]usize) type {
     };
 }
 
-const I_piece = GenericPiece(.{ .{1, 0}, .{1, 2}, .{1, 3}}); // huh how? doesn't fit in 3 by 3
-const O_piece = GenericPiece(.{ .{2, 1}, .{1, 2}, .{2, 2} });
-const J_piece = GenericPiece(.{ .{0, 0}, .{1, 0}, .{1, 2} });
-const L_piece = GenericPiece(.{ .{1, 0}, .{1, 2}, .{0, 2} });
-const T_piece = GenericPiece(.{ .{1, 0}, .{0, 1}, .{1, 2} });
-const Z_piece = GenericPiece(.{ .{0, 0}, .{0, 1}, .{1, 2} });
-const S_piece = GenericPiece(.{ .{1, 0}, .{0, 1}, .{0, 2} });
+const I_piece = GenericPiece();
+const O_piece = GenericPiece();
+const J_piece = GenericPiece();
+const L_piece = GenericPiece();
+const T_piece = GenericPiece();
+const S_piece = GenericPiece();
+const Z_piece = GenericPiece();
 
+pub fn u_plus_i(u: usize, i: isize) usize {
+    var nu: usize = u;
+    if (i < 0) {
+        nu -= @intCast(-i);
+    } else {
+        nu += @intCast(i);
+    }
+    return nu;
+}

@@ -3,6 +3,7 @@ const Io = std.Io;
 const File = std.fs.File;
 const tih = @import("termios_input_handler.zig");
 const Tetramino = @import("tetramino.zig").Tetramino;
+const u_plus_i =@import("tetramino.zig").u_plus_i;
 
 pub fn main() !void {
     var prng: std.Random.DefaultPrng = .init(blk: {
@@ -95,12 +96,19 @@ pub const Game = struct{
                     }
                 },
                 .RotCWButton => {
-                    self.active_tetramino.rot_CW();
-                    std.debug.print("{f}", .{self});
+                    const opt_wall_kick = self.superRotationSystem(tih.UserInput.RotCWButton);
+                    if (opt_wall_kick) |wall_kick| {
+                        self.active_tetramino.rot_CW(wall_kick);
+                        std.debug.print("{f}", .{self});
+                        std.debug.print("{any}\n", .{wall_kick});
+                    }
                 },
                 .RotCCWButton => {
-                    self.active_tetramino.rot_CCW();
-                    std.debug.print("{f}", .{self});
+                    const opt_wall_kick = self.superRotationSystem(tih.UserInput.RotCCWButton);
+                    if (opt_wall_kick) |wall_kick| {
+                        self.active_tetramino.rot_CCW(wall_kick);
+                        std.debug.print("{f}", .{self});
+                    }
                 },
                 .PauseButton => {
                     var paused = true;
@@ -148,6 +156,7 @@ pub const Game = struct{
 
     fn lockTetramino(self: *Game) void {
         const block_pos_arr = self.active_tetramino.get_blocks();
+        // initialize with max usize by wrapping subtraction
         var row_full_arr: [4]usize = .{ @as(usize, 0) -% 1 } ** 4;
         var idx: usize = 0;
         for (block_pos_arr) |block_pos| {
@@ -211,6 +220,78 @@ pub const Game = struct{
             }
         }
         return any_block;
+    }
+
+    fn superRotationSystem(self: *Game, input: tih.UserInput) ?[2]isize {
+        var tetra = self.active_tetramino;
+        const piece = switch (tetra) {
+            .I, .O, .J, .L, .T, .S, .Z => |p| p,
+        };
+        const state = self.state;
+        var tmp_blk_pos: [4][2]usize = undefined;
+        tmp_blk_pos[3][0] = piece.row;
+        tmp_blk_pos[3][1] = piece.col;
+        switch (input) {
+            .RotCWButton => {
+                for (0..tmp_blk_pos.len - 1) |i| {
+                    tmp_blk_pos[i][1] = piece.col + piece.row - piece.block_pos[i][0];
+                    tmp_blk_pos[i][0] = piece.block_pos[i][1] + piece.row - piece.col;
+                }
+                
+                const wall_kick_arr: [5][2]isize = tetra.wallKickCW();
+                var idx: usize = 0;
+                var any = true;
+                while (any and (idx < wall_kick_arr.len)) {
+                    any = false;
+                    const wall_kick = wall_kick_arr[idx];
+                    for (tmp_blk_pos) |pos| {
+                        const col = u_plus_i(pos[1], wall_kick[1]);
+                        if (col >= MAXCOLS) {
+                            any = true;
+                            break;
+                        }
+                        const row = u_plus_i(pos[0], wall_kick[0]);
+                        if (row >= MAXROWS) {
+                            any = true;
+                            break;
+                        }
+                        any = any or state.array[row][col];
+                    }
+                    idx += 1;
+                }
+                return if (idx != wall_kick_arr.len) wall_kick_arr[idx] else null;
+            },
+            .RotCCWButton => {
+                for (0..tmp_blk_pos.len - 1) |i| {
+                    tmp_blk_pos[i][1] = piece.col + piece.block_pos[i][0] - piece.row;
+                    tmp_blk_pos[i][0] = piece.row + piece.col - piece.block_pos[i][1];
+                }
+                
+                const wall_kick_arr: [5][2]isize = tetra.wallKickCCW();
+                var idx: usize = 0;
+                var any = true;
+                while (any and (idx < wall_kick_arr.len)) {
+                    any = false;
+                    const wall_kick = wall_kick_arr[idx];
+                    for (tmp_blk_pos) |pos| {
+                        const col = u_plus_i(pos[1], wall_kick[1]);
+                        if (col >= MAXCOLS) {
+                            any = true;
+                            break;
+                        }
+                        const row = u_plus_i(pos[0], wall_kick[0]);
+                        if (row >= MAXROWS) {
+                            any = true;
+                            break;
+                        }
+                        any = any or state.array[row][col];
+                    }
+                    idx += 1;
+                }
+                return if (idx != wall_kick_arr.len) wall_kick_arr[idx] else null;
+            },
+            else => unreachable,
+        }
     }
 
     pub fn format(self: *Game, writer: *Io.Writer) !void {

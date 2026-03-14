@@ -14,19 +14,6 @@ pub fn main() !void {
     var rand = prng.random();
     var game = Game.init(&rand);
 
-    // game.active_tetramino.move_down();
-    // game.active_tetramino.move_down();
-    // game.active_tetramino.move_down();
-    // //game.active_tetramino.move_right();
-    // game.active_tetramino.rot_CW();
-    // game.active_tetramino.rot_CW();
-    // game.active_tetramino.rot_CW();
-
-    // inline for (1..10) |i| {
-    //     game.state.update(i, 19, true);
-    // }
-    // std.debug.print("{f}", .{&game});
-
     try game.gameLoop();
 }
 
@@ -54,7 +41,7 @@ pub const Game = struct{
             .tetramino_num = 0,
             .tetramino_seq = buffer,
             .rand = rand,
-            .timeToStep = 500000000,
+            .timeToStep = 10_000_000_000,
         };
     }
 
@@ -135,9 +122,6 @@ pub const Game = struct{
                 timer.reset();
                 time_lock = timer.read();
             }
-            if (timer.read() > 10_000_000_000) {
-                running = false;
-            }
         }
     }
 
@@ -160,8 +144,8 @@ pub const Game = struct{
         var row_full_arr: [4]usize = .{ @as(usize, 0) -% 1 } ** 4;
         var idx: usize = 0;
         for (block_pos_arr) |block_pos| {
-            const row = block_pos[0];
-            const col = block_pos[1];
+            const row = @as(usize, @intCast(block_pos[0]));
+            const col = @as(usize, @intCast(block_pos[1]));
             self.state.update(row, col, true);
             if (self.state.checkRowFull(row)) {
                 row_full_arr[idx] = row;
@@ -178,11 +162,11 @@ pub const Game = struct{
         const block_pos_arr = self.active_tetramino.get_blocks();
         var any_block = false; 
         for (block_pos_arr) |block_pos| {
-            const row = block_pos[0];
-            const col = block_pos[1];
+            const row = @as(usize, @intCast(block_pos[0]));
+            const col = @as(usize, @intCast(block_pos[1]));
             any_block = (col == 0) or any_block;
             if (~any_block) {
-                any_block = any_block or self.state.array[row][col - 1];
+                any_block = any_block or self.state.array[@as(usize, @intCast(row))][@as(usize, @intCast(col)) - 1];
             } else {
                 return true;
             }
@@ -198,7 +182,9 @@ pub const Game = struct{
             const col = block_pos[1];
             any_block = (col == (MAXCOLS - 1)) or any_block;
             if (~any_block) {
-                any_block = any_block or self.state.array[row][col + 1];
+                any_block = any_block or self.state.array[
+                    @as(usize, @intCast(row))][
+                    @as(usize, @intCast(col)) + 1];
             } else {
                 return true;
             }
@@ -214,7 +200,7 @@ pub const Game = struct{
             const col = block_pos[1];
             any_block = (row == (MAXROWS - 1)) or any_block;
             if (~any_block) {
-                any_block = any_block or self.state.array[row + 1][col];
+                any_block = any_block or self.state.array[@as(usize, @intCast(row)) + 1][@as(usize, @intCast(col))];
             } else {
                 return true;
             }
@@ -222,69 +208,104 @@ pub const Game = struct{
         return any_block;
     }
 
-    fn superRotationSystem(self: *Game, input: tih.UserInput) ?[2]isize {
-        var tetra = self.active_tetramino;
-        const piece = switch (tetra) {
-            .I, .O, .J, .L, .T, .S, .Z => |p| p,
-        };
+    fn checkOverlap(self: *Game, block_pos: [4][2]isize) bool {
         const state = self.state;
-        var tmp_blk_pos: [4][2]usize = undefined;
-        tmp_blk_pos[3][0] = piece.row;
-        tmp_blk_pos[3][1] = piece.col;
+        var any_overlap = false; 
+        for (block_pos) |pos| {
+            const col = pos[1];
+            if ((col >= MAXCOLS) or (col < 0)) {
+                return true;
+            }
+            const row = pos[0];
+            if ((row >= MAXROWS) or (row < 0)) {
+                return true;
+            }
+            any_overlap = any_overlap or state.array[@as(usize, @intCast(row))][@as(usize, @intCast(col))];
+        }
+        return any_overlap;
+    }
+
+    fn superRotationSystem(self: *Game, input: tih.UserInput) ?[2]isize {
+        var tetra_i = self.active_tetramino;
+        const offset_arr_i = tetra_i.offset();
+        // const piece = switch (tetra_i) {
+        //     .I, .O, .J, .L, .T, .S, .Z => |p| p,
+        // };
+        const state = self.state;
+        var tmp_blk_pos: [4][2]isize = undefined;
+        var offset_blk_pos: [4][2]isize = undefined;
         switch (input) {
             .RotCWButton => {
-                for (0..tmp_blk_pos.len - 1) |i| {
-                    tmp_blk_pos[i][1] = piece.col + piece.row - piece.block_pos[i][0];
-                    tmp_blk_pos[i][0] = piece.block_pos[i][1] + piece.row - piece.col;
+                var tetra_o = tetra_i.true_rot_CW();
+                tmp_blk_pos = tetra_o.get_blocks();
+                const offset_arr_o = tetra_o.offset();
+                var wall_kick_arr: [5][2]isize = undefined;
+                for (0..wall_kick_arr.len) |i| {
+                    wall_kick_arr[i][0] = offset_arr_i[i][0] - offset_arr_o[i][0];
+                    wall_kick_arr[i][1] = offset_arr_i[i][1] - offset_arr_o[i][1];
+                    for (0..offset_blk_pos.len) |j| {
+                        offset_blk_pos[j][0] = tmp_blk_pos[j][0] + wall_kick_arr[i][0];
+                        offset_blk_pos[j][1] = tmp_blk_pos[j][1] + wall_kick_arr[i][1];
+                    }
+                    if (~self.checkOverlap(offset_blk_pos)) {
+                        return wall_kick_arr[i];
+                    }
+                } else {
+                    return null;
                 }
                 
-                const wall_kick_arr: [5][2]isize = tetra.wallKickCW();
-                var idx: usize = 0;
-                var any = true;
-                while (any and (idx < wall_kick_arr.len)) {
-                    any = false;
-                    const wall_kick = wall_kick_arr[idx];
-                    for (tmp_blk_pos) |pos| {
-                        const col = u_plus_i(pos[1], wall_kick[1]);
-                        if (col >= MAXCOLS) {
-                            any = true;
-                            break;
-                        }
-                        const row = u_plus_i(pos[0], wall_kick[0]);
-                        if (row >= MAXROWS) {
-                            any = true;
-                            break;
-                        }
-                        any = any or state.array[row][col];
-                    }
-                    idx += 1;
-                }
-                return if (idx != wall_kick_arr.len) wall_kick_arr[idx] else null;
+                // std.debug.print("{any}\n", .{wall_kick_arr});
+                // var idx: usize = 0;
+                // var any_overlap = true;
+                // while (any_overlap and (idx < wall_kick_arr.len)) {
+                //     any_overlap = false;
+                //     const wall_kick = wall_kick_arr[idx];
+                //     for (tmp_blk_pos) |pos| {
+                //         const col = pos[1] + wall_kick[1];
+                //         if ((col >= MAXCOLS) or (col < 0)) {
+                //             any_overlap = true;
+                //             break;
+                //         }
+                //         const row = pos[0] + wall_kick[0];
+                //         if ((row >= MAXROWS) or (row < 0)) {
+                //             any_overlap = true;
+                //             break;
+                //         }
+                //         any_overlap = any_overlap or state.array[row][col];
+                //     }
+                //     if (any_overlap) {
+                //         idx += 1;
+                //     }
+                // }
+                // return if (idx != wall_kick_arr.len) wall_kick_arr[idx] else null;
             },
             .RotCCWButton => {
-                for (0..tmp_blk_pos.len - 1) |i| {
-                    tmp_blk_pos[i][1] = piece.col + piece.block_pos[i][0] - piece.row;
-                    tmp_blk_pos[i][0] = piece.row + piece.col - piece.block_pos[i][1];
+                var tetra_o = tetra_i.true_rot_CW();
+                const offset_arr_o = tetra_o.offset();
+                var wall_kick_arr: [5][2]isize = undefined;
+                for (0..wall_kick_arr.len) |i| {
+                    wall_kick_arr[i][0] = offset_arr_i[i][0] - offset_arr_o[i][0];
+                    wall_kick_arr[i][1] = offset_arr_i[i][1] - offset_arr_o[i][1];
                 }
-                
-                const wall_kick_arr: [5][2]isize = tetra.wallKickCCW();
+                tmp_blk_pos = tetra_o.get_blocks();
+
                 var idx: usize = 0;
                 var any = true;
                 while (any and (idx < wall_kick_arr.len)) {
                     any = false;
                     const wall_kick = wall_kick_arr[idx];
                     for (tmp_blk_pos) |pos| {
-                        const col = u_plus_i(pos[1], wall_kick[1]);
+                        const col = pos[1] + wall_kick[1];
                         if (col >= MAXCOLS) {
                             any = true;
                             break;
                         }
-                        const row = u_plus_i(pos[0], wall_kick[0]);
+                        const row = pos[0] + wall_kick[0];
                         if (row >= MAXROWS) {
                             any = true;
                             break;
                         }
-                        any = any or state.array[row][col];
+                        any = any or state.array[@as(usize, @intCast(row))][@as(usize, @intCast(col))];
                     }
                     idx += 1;
                 }

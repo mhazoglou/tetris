@@ -47,17 +47,15 @@ pub const Tetramino = union(enum) {
 
     pub fn rot_CW(self: *Tetramino, wall_kick: [2]isize) void {
         switch (self.*) {
-            .I => |*piece| piece.rot_CW(wall_kick),
             .O => {},
-            .J, .L, .T, .S, .Z => |*piece| piece.rot_CW(wall_kick),
+            .I, .J, .L, .T, .S, .Z => |*piece| piece.rot_CW(wall_kick),
         }
     }
 
     pub fn rot_CCW(self: *Tetramino, wall_kick: [2]isize) void {
         switch (self.*) {
-            .I => |*piece| piece.rot_CCW(wall_kick),
             .O => {},
-            .J, .L, .T, .S, .Z => |*piece| piece.rot_CCW(wall_kick),
+            .I, .J, .L, .T, .S, .Z => |*piece| piece.rot_CCW(wall_kick),
         }
     }
 
@@ -136,50 +134,6 @@ pub const Tetramino = union(enum) {
                     .Clockwise =>        .{ .{ 0, 0}, .{ 0, 1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} },
                     .DoubleRotated => .{ .{ 0, 0}, .{ 0, 0}, .{ 0, 0}, .{ 0, 0}, .{ 0, 0} },
                     .CounterClockwise =>    .{ .{ 0, 0}, .{ 0,-1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} },
-                };
-            },
-        };
-    }
-
-    pub fn wallKickCW(self: *Tetramino) [5][2]isize {
-        return switch (self.*) {
-            .I => |piece| {
-                return switch (piece.orientation) {
-                    .Spawn =>            .{ .{ 0, 0}, .{ 0,-2}, .{ 0, 1}, .{-1,-2}, .{ 2, 1} },
-                    .Clockwise =>        .{ .{ 0, 0}, .{ 0,-1}, .{ 0, 2}, .{ 2,-1}, .{-1, 2} },
-                    .CounterClockwise => .{ .{ 0, 0}, .{ 0, 1}, .{ 0,-2}, .{-2, 1}, .{ 1,-2} },
-                    .DoubleRotated =>    .{ .{ 0, 0}, .{ 0, 2}, .{ 0,-1}, .{ 1, 2}, .{-2,-1} },
-                };
-            },
-            .O => return .{ .{0} ** 2 } ** 5,
-            .J, .L, .T, .S, .Z => |piece| {
-                return switch (piece.orientation) {
-                    .Spawn =>            .{ .{ 0, 0}, .{0, -1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} },
-                    .Clockwise =>        .{ .{ 0, 0}, .{0,  1}, .{-1, 1}, .{ 2, 0}, .{ 2, 1} },
-                    .CounterClockwise => .{ .{ 0, 0}, .{0, -1}, .{-1,-1}, .{ 2, 0}, .{ 2,-1} },
-                    .DoubleRotated =>    .{ .{ 0, 0}, .{0,  1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} },
-                };
-            },
-        };
-    }
-
-    pub fn wallKickCCW(self: *Tetramino) [5][2]isize {
-        return switch (self.*) {
-            .I => |piece| {
-                return switch (piece.orientation) {
-                    .Spawn =>            .{ .{ 0, 0}, .{ 0,-1}, .{ 0, 2}, .{ 2,-1}, .{-1, 2} },
-                    .Clockwise =>        .{ .{ 0, 0}, .{ 0, 2}, .{ 0,-1}, .{ 1, 2}, .{-2,-1} },
-                    .CounterClockwise => .{ .{ 0, 0}, .{ 0,-2}, .{ 0, 1}, .{-1,-2}, .{ 2, 1} },
-                    .DoubleRotated =>    .{ .{ 0, 0}, .{ 0, 1}, .{ 0,-2}, .{-2, 1}, .{ 1,-2} },
-                };
-            },
-            .O => .{ .{0} ** 2 } ** 5,
-            .J, .L, .T, .S, .Z => |piece| {
-                return switch (piece.orientation) {
-                    .Spawn =>            .{ .{ 0, 0}, .{0,  1}, .{ 1, 1}, .{-2, 0}, .{-2, 1} },
-                    .Clockwise =>        .{ .{ 0, 0}, .{0,  1}, .{-1, 1}, .{ 2, 0}, .{ 2, 1} },
-                    .CounterClockwise => .{ .{ 0, 0}, .{0, -1}, .{-1,-1}, .{ 2, 0}, .{ 2,-1} },
-                    .DoubleRotated =>    .{ .{ 0, 0}, .{0, -1}, .{ 1,-1}, .{-2, 0}, .{-2,-1} },
                 };
             },
         };

@@ -30,7 +30,7 @@ pub const Game = struct{
     tetramino_num: u64,
     tetramino_seq: [7]u8,
     rand: *std.Random,
-    timeToStep: u64, // time in ns to move one down inverse of gravity
+    timeToDrop: u64, // time in ns to move one down inverse of gravity
     
     pub fn init(rand: *std.Random) Game {
         var buffer = [_]u8{'I', 'O', 'J', 'L', 'T', 'S', 'Z'};
@@ -41,7 +41,7 @@ pub const Game = struct{
             .tetramino_num = 0,
             .tetramino_seq = buffer,
             .rand = rand,
-            .timeToStep = 10_000_000_000,
+            .timeToDrop = 200_000_000,
         };
     }
 
@@ -60,6 +60,8 @@ pub const Game = struct{
         var timer = std.time.Timer.start() catch unreachable;
         // var time_draw = timer.read();
         var time_lock = timer.read();
+        var time_drop = timer.read();
+        var in_lock_delay = false;
         while (running) {
             var input = try tih.InputHandler(reader, writer, false);
 
@@ -111,16 +113,24 @@ pub const Game = struct{
                 else => {},
             }
 
-            if (timer.read() > self.timeToStep) {
+            if ((timer.read() - time_drop) > self.timeToDrop) {
                 if (!self.downBlocked()) {
                     self.active_tetramino.move_down();
-                } else if ((timer.read() - time_lock) > LOCKTIME) {
-                    self.lockTetramino();
-                    self.spawnTetramino();
+                } else {
+                    if (!in_lock_delay) {
+                        in_lock_delay = true;
+                        time_lock = timer.read();
+                    } else {
+                        if ((timer.read() - time_lock) > LOCKTIME) {
+                            self.lockTetramino();
+                            self.spawnTetramino();
+                            in_lock_delay = false;
+                            timer.reset();
+                        }
+                    }
                 }
                 std.debug.print("{f}", .{self});
-                timer.reset();
-                time_lock = timer.read();
+                time_drop = timer.read();
             }
         }
     }

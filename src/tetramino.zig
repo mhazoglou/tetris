@@ -21,27 +21,27 @@ pub const Tetramino = union(enum) {
         };
     }
 
-    pub fn true_rot_CW(self: *Tetramino) Tetramino {
+    pub fn true_rot_CW(self: *const Tetramino) Tetramino {
         return switch (self.*) {
-            .I => |*piece| .{ .I = piece.true_rot_CW() },
-            .O => |*piece| .{ .O = piece.true_rot_CW() },
-            .J => |*piece| .{ .J = piece.true_rot_CW() },
-            .L => |*piece| .{ .L = piece.true_rot_CW() },
-            .T => |*piece| .{ .T = piece.true_rot_CW() },
-            .S => |*piece| .{ .S = piece.true_rot_CW() },
-            .Z => |*piece| .{ .Z = piece.true_rot_CW() },
+            .I => |piece| .{ .I = piece.true_rot_CW() },
+            .O => |piece| .{ .O = piece.true_rot_CW() },
+            .J => |piece| .{ .J = piece.true_rot_CW() },
+            .L => |piece| .{ .L = piece.true_rot_CW() },
+            .T => |piece| .{ .T = piece.true_rot_CW() },
+            .S => |piece| .{ .S = piece.true_rot_CW() },
+            .Z => |piece| .{ .Z = piece.true_rot_CW() },
         };
     }
 
-    pub fn true_rot_CCW(self: *Tetramino) Tetramino {
+    pub fn true_rot_CCW(self: *const Tetramino) Tetramino {
         return switch (self.*) {
-            .I => |*piece| .{ .I = piece.true_rot_CCW() },
-            .O => |*piece| .{ .O = piece.true_rot_CCW() },
-            .J => |*piece| .{ .J = piece.true_rot_CCW() },
-            .L => |*piece| .{ .L = piece.true_rot_CCW() },
-            .T => |*piece| .{ .T = piece.true_rot_CCW() },
-            .S => |*piece| .{ .S = piece.true_rot_CCW() },
-            .Z => |*piece| .{ .Z = piece.true_rot_CCW() },
+            .I => |piece| .{ .I = piece.true_rot_CCW() },
+            .O => |piece| .{ .O = piece.true_rot_CCW() },
+            .J => |piece| .{ .J = piece.true_rot_CCW() },
+            .L => |piece| .{ .L = piece.true_rot_CCW() },
+            .T => |piece| .{ .T = piece.true_rot_CCW() },
+            .S => |piece| .{ .S = piece.true_rot_CCW() },
+            .Z => |piece| .{ .Z = piece.true_rot_CCW() },
         };
     }
 
@@ -77,15 +77,15 @@ pub const Tetramino = union(enum) {
         }
     }
 
-    pub fn get_blocks(self: *Tetramino) [4][2]isize {
+    pub fn get_blocks(self: *const Tetramino) [4][2]isize {
         return switch (self.*) {
-            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.get_blocks(),
+            .I, .O, .J, .L, .T, .S, .Z => |piece| piece.get_blocks(),
         };
     }
 
-    pub fn isOccupied(self: *Tetramino, col: usize, row: usize) bool {
+    pub fn isOccupied(self: *const Tetramino, col: usize, row: usize) bool {
         return switch (self.*) {
-            .I, .O, .J, .L, .T, .S, .Z => |*piece| piece.isOccupied(row, col),
+            .I, .O, .J, .L, .T, .S, .Z => |piece| piece.isOccupied(row, col),
         };
     }
 
@@ -110,7 +110,7 @@ pub const Tetramino = union(enum) {
 // 2 .{ 1,-1},
 // L .{ 0,-1},
 
-    pub fn offset(self: *Tetramino) [5][2]isize {
+    pub fn offset(self: *const Tetramino) [5][2]isize {
         return switch (self.*) {
             .I => |piece| {
                 return switch (piece.orientation) {
@@ -175,7 +175,7 @@ pub fn GenericPiece() type {
             };
         }
 
-        pub fn true_rot_CW(self: *Self) Self {
+        pub fn true_rot_CW(self: *const Self) Self {
             var tmp_blk_pos: [3][2]isize = undefined;
             const end = tmp_blk_pos.len;
             for (0..end) |i| {
@@ -196,7 +196,7 @@ pub fn GenericPiece() type {
             };
         }
 
-        pub fn true_rot_CCW(self: *Self) Self {
+        pub fn true_rot_CCW(self: *const Self) Self {
             var tmp_blk_pos: [3][2]isize = undefined;
             const end = tmp_blk_pos.len;
             for (0..end) |i| {
@@ -282,7 +282,7 @@ pub fn GenericPiece() type {
             }
         }
 
-        pub fn get_blocks(self: *Self) [4][2]isize {
+        pub fn get_blocks(self: *const Self) [4][2]isize {
             return .{ 
                 self.block_pos[0],
                 .{self.row, self.col}, 
@@ -291,7 +291,7 @@ pub fn GenericPiece() type {
             };
         }
 
-        pub fn isOccupied(self: *Self, col: usize, row: usize) bool {
+        pub fn isOccupied(self: *const Self, col: usize, row: usize) bool {
             const blockpos = self.get_blocks();
 
             inline for (0..blockpos.len) |i| {

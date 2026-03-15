@@ -245,7 +245,7 @@ pub const Game = struct{
         return any_block;
     }
 
-    fn checkOverlap(self: *Game, block_pos: [4][2]isize) bool {
+    fn checkOverlap(self: *const Game, block_pos: [4][2]isize) bool {
         const state = self.state;
         var any_overlap = false; 
         for (block_pos) |pos| {
@@ -262,49 +262,40 @@ pub const Game = struct{
         return any_overlap;
     }
 
-    fn superRotationSystem(self: *Game, input: tih.UserInput) ?[2]isize {
-        var tetra_i = self.active_tetramino;
-        const offset_arr_i = tetra_i.offset();
-        var tmp_blk_pos: [4][2]isize = undefined;
-        var offset_blk_pos: [4][2]isize = undefined;
+    fn superRotationSystem(self: *const Game, input: tih.UserInput) ?[2]isize {
+
+        const SRSLogic = struct{
+            fn srsLogic(game: *const Game, tetra_i: Tetramino, tetra_o: Tetramino) ?[2]isize {
+                const offset_arr_i = tetra_i.offset();
+                const tmp_blk_pos = tetra_o.get_blocks();
+                const offset_arr_o = tetra_o.offset();
+                var offset_blk_pos: [4][2]isize = undefined;
+                var wall_kick_arr: [5][2]isize = undefined;
+                for (0..wall_kick_arr.len) |i| {
+                    wall_kick_arr[i][0] = offset_arr_i[i][0] - offset_arr_o[i][0];
+                    wall_kick_arr[i][1] = offset_arr_i[i][1] - offset_arr_o[i][1];
+                    for (0..offset_blk_pos.len) |j| {
+                        offset_blk_pos[j][0] = tmp_blk_pos[j][0] + wall_kick_arr[i][0];
+                        offset_blk_pos[j][1] = tmp_blk_pos[j][1] + wall_kick_arr[i][1];
+                    }
+                    if (~game.checkOverlap(offset_blk_pos)) {
+                        return wall_kick_arr[i];
+                    }
+                } else {
+                    return null;
+                }
+            } 
+        }.srsLogic;
+
+        const tetra_i = self.active_tetramino;
         switch (input) {
             .RotCWButton => {
-                var tetra_o = tetra_i.true_rot_CW();
-                tmp_blk_pos = tetra_o.get_blocks();
-                const offset_arr_o = tetra_o.offset();
-                var wall_kick_arr: [5][2]isize = undefined;
-                for (0..wall_kick_arr.len) |i| {
-                    wall_kick_arr[i][0] = offset_arr_i[i][0] - offset_arr_o[i][0];
-                    wall_kick_arr[i][1] = offset_arr_i[i][1] - offset_arr_o[i][1];
-                    for (0..offset_blk_pos.len) |j| {
-                        offset_blk_pos[j][0] = tmp_blk_pos[j][0] + wall_kick_arr[i][0];
-                        offset_blk_pos[j][1] = tmp_blk_pos[j][1] + wall_kick_arr[i][1];
-                    }
-                    if (~self.checkOverlap(offset_blk_pos)) {
-                        return wall_kick_arr[i];
-                    }
-                } else {
-                    return null;
-                }
+                const tetra_o = tetra_i.true_rot_CW();
+                return SRSLogic(self, tetra_i, tetra_o);
             },
             .RotCCWButton => {
-                var tetra_o = tetra_i.true_rot_CCW();
-                tmp_blk_pos = tetra_o.get_blocks();
-                const offset_arr_o = tetra_o.offset();
-                var wall_kick_arr: [5][2]isize = undefined;
-                for (0..wall_kick_arr.len) |i| {
-                    wall_kick_arr[i][0] = offset_arr_i[i][0] - offset_arr_o[i][0];
-                    wall_kick_arr[i][1] = offset_arr_i[i][1] - offset_arr_o[i][1];
-                    for (0..offset_blk_pos.len) |j| {
-                        offset_blk_pos[j][0] = tmp_blk_pos[j][0] + wall_kick_arr[i][0];
-                        offset_blk_pos[j][1] = tmp_blk_pos[j][1] + wall_kick_arr[i][1];
-                    }
-                    if (~self.checkOverlap(offset_blk_pos)) {
-                        return wall_kick_arr[i];
-                    }
-                } else {
-                    return null;
-                }
+                const tetra_o = tetra_i.true_rot_CCW();
+                return SRSLogic(self, tetra_i, tetra_o);
             },
             else => unreachable,
         }

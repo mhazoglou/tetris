@@ -1,5 +1,7 @@
 const std = @import("std");
 const Io = std.Io;
+const posix = std.posix;
+const fs = std.fs;
 const File = std.fs.File;
 const tih = @import("termios_input_handler.zig");
 const Tetramino = @import("tetramino.zig").Tetramino;
@@ -8,7 +10,7 @@ const u_plus_i =@import("tetramino.zig").u_plus_i;
 pub fn main() !void {
     var prng: std.Random.DefaultPrng = .init(blk: {
         var seed: u64 = undefined;
-        try std.posix.getrandom(std.mem.asBytes(&seed));
+        try posix.getrandom(std.mem.asBytes(&seed));
         break :blk seed;
     });
     var rand = prng.random();
@@ -48,6 +50,22 @@ pub const Game = struct{
     pub fn gameLoop(self: *Game) !void {
         var running: bool = true;
 
+        const tty_file = try fs.openFileAbsolute("/dev/tty", .{});
+        defer tty_file.close();
+        const tty_fd = tty_file.handle;
+
+        const old_settings = try posix.tcgetattr(tty_fd);
+
+        // Set non-blocking (polling)
+        var new_settings: posix.termios = old_settings;
+        new_settings.lflag.ICANON = false;
+        new_settings.lflag.ECHO = false;
+        new_settings.cc[6] = 0; //VMIN
+        new_settings.cc[5] = 0; //VTIME
+        new_settings.lflag.ECHOE = false;
+
+        _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, new_settings);
+
         var stdin_buffer: [BUFFERSIZE]u8 = undefined;
         var stdout_buffer: [BUFFERSIZE]u8 = undefined;
 
@@ -58,12 +76,11 @@ pub const Game = struct{
 
         std.debug.print("{f}", .{self});
         var timer = std.time.Timer.start() catch unreachable;
-        // var time_draw = timer.read();
         var time_lock = timer.read();
         var time_drop = timer.read();
         var in_lock_delay = false;
         while (running) {
-            var input = try tih.InputHandler(reader, writer, false);
+            var input = try tih.InputHandler(reader, writer);
 
             switch (input) {
                 .LeftButton => {
@@ -88,23 +105,31 @@ pub const Game = struct{
                     const opt_wall_kick = self.superRotationSystem(tih.UserInput.RotCWButton);
                     if (opt_wall_kick) |wall_kick| {
                         self.active_tetramino.rot_CW(wall_kick);
+                        in_lock_delay = false;
                         std.debug.print("{f}", .{self});
-                        std.debug.print("{any}\n", .{wall_kick});
                     }
                 },
                 .RotCCWButton => {
                     const opt_wall_kick = self.superRotationSystem(tih.UserInput.RotCCWButton);
                     if (opt_wall_kick) |wall_kick| {
                         self.active_tetramino.rot_CCW(wall_kick);
+                        in_lock_delay = false;
                         std.debug.print("{f}", .{self});
                     }
                 },
                 .PauseButton => {
                     var paused = true;
                     while (paused) {
-                        input = try tih.InputHandler(reader, writer, true);
+                        // blocking 
+                        new_settings.cc[6] = 1; //VMIN
+                        _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, new_settings);
+                        input = try tih.InputHandler(reader, writer);
                         switch (input) {
-                            .PauseButton => paused = false,
+                            .PauseButton => {
+                                new_settings.cc[6] = 0; //VMIN
+                                _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, new_settings);
+                                paused = false;
+                            },
                             else => {},
                         }
                     }
@@ -132,6 +157,8 @@ pub const Game = struct{
                 std.debug.print("{f}", .{self});
                 time_drop = timer.read();
             }
+        } else {
+            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
         }
     }
 
@@ -238,10 +265,6 @@ pub const Game = struct{
     fn superRotationSystem(self: *Game, input: tih.UserInput) ?[2]isize {
         var tetra_i = self.active_tetramino;
         const offset_arr_i = tetra_i.offset();
-        // const piece = switch (tetra_i) {
-        //     .I, .O, .J, .L, .T, .S, .Z => |p| p,
-        // };
-        const state = self.state;
         var tmp_blk_pos: [4][2]isize = undefined;
         var offset_blk_pos: [4][2]isize = undefined;
         switch (input) {
@@ -263,63 +286,25 @@ pub const Game = struct{
                 } else {
                     return null;
                 }
-                
-                // std.debug.print("{any}\n", .{wall_kick_arr});
-                // var idx: usize = 0;
-                // var any_overlap = true;
-                // while (any_overlap and (idx < wall_kick_arr.len)) {
-                //     any_overlap = false;
-                //     const wall_kick = wall_kick_arr[idx];
-                //     for (tmp_blk_pos) |pos| {
-                //         const col = pos[1] + wall_kick[1];
-                //         if ((col >= MAXCOLS) or (col < 0)) {
-                //             any_overlap = true;
-                //             break;
-                //         }
-                //         const row = pos[0] + wall_kick[0];
-                //         if ((row >= MAXROWS) or (row < 0)) {
-                //             any_overlap = true;
-                //             break;
-                //         }
-                //         any_overlap = any_overlap or state.array[row][col];
-                //     }
-                //     if (any_overlap) {
-                //         idx += 1;
-                //     }
-                // }
-                // return if (idx != wall_kick_arr.len) wall_kick_arr[idx] else null;
             },
             .RotCCWButton => {
-                var tetra_o = tetra_i.true_rot_CW();
+                var tetra_o = tetra_i.true_rot_CCW();
+                tmp_blk_pos = tetra_o.get_blocks();
                 const offset_arr_o = tetra_o.offset();
                 var wall_kick_arr: [5][2]isize = undefined;
                 for (0..wall_kick_arr.len) |i| {
                     wall_kick_arr[i][0] = offset_arr_i[i][0] - offset_arr_o[i][0];
                     wall_kick_arr[i][1] = offset_arr_i[i][1] - offset_arr_o[i][1];
-                }
-                tmp_blk_pos = tetra_o.get_blocks();
-
-                var idx: usize = 0;
-                var any = true;
-                while (any and (idx < wall_kick_arr.len)) {
-                    any = false;
-                    const wall_kick = wall_kick_arr[idx];
-                    for (tmp_blk_pos) |pos| {
-                        const col = pos[1] + wall_kick[1];
-                        if (col >= MAXCOLS) {
-                            any = true;
-                            break;
-                        }
-                        const row = pos[0] + wall_kick[0];
-                        if (row >= MAXROWS) {
-                            any = true;
-                            break;
-                        }
-                        any = any or state.array[@as(usize, @intCast(row))][@as(usize, @intCast(col))];
+                    for (0..offset_blk_pos.len) |j| {
+                        offset_blk_pos[j][0] = tmp_blk_pos[j][0] + wall_kick_arr[i][0];
+                        offset_blk_pos[j][1] = tmp_blk_pos[j][1] + wall_kick_arr[i][1];
                     }
-                    idx += 1;
+                    if (~self.checkOverlap(offset_blk_pos)) {
+                        return wall_kick_arr[i];
+                    }
+                } else {
+                    return null;
                 }
-                return if (idx != wall_kick_arr.len) wall_kick_arr[idx] else null;
             },
             else => unreachable,
         }

@@ -23,40 +23,20 @@ pub const is_posix: bool = switch (builtin.os.tag) {
     else => true,
 };
 
-pub fn InputHandler(reader: *Io.Reader, writer: *Io.Writer, block: bool) !UserInput {
-
-    const tty_file = try fs.openFileAbsolute("/dev/tty", .{});
-    defer tty_file.close();
-    const tty_fd = tty_file.handle;
-
-    var old_settings: posix.termios = undefined;
-    old_settings = try posix.tcgetattr(tty_fd);
-
-    var new_settings: posix.termios = old_settings;
-    new_settings.lflag.ICANON = false;
-    new_settings.lflag.ECHO = false;
-    new_settings.cc[6] = if (block) 1 else 0; //VMIN
-    new_settings.cc[5] = 0; //VTIME
-    new_settings.lflag.ECHOE = false;
-
-    _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, new_settings);
+pub fn InputHandler(reader: *Io.Reader, writer: *Io.Writer) !UserInput {
 
     blk: while (true) {
         const c: u8 = reader.takeByte() catch |err| switch (err) {
             error.EndOfStream => {
-                _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                 return UserInput.Idle;
             },
             error.ReadFailed => {
-                _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                 return err;
             },
         };
         if (c == '\n') {
-            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
             return UserInput.PauseButton;
         } else if (c == '\t') {
-            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
             return UserInput.PauseButton;
         } else if (c == '\x7F') {
             continue: blk;
@@ -64,11 +44,9 @@ pub fn InputHandler(reader: *Io.Reader, writer: *Io.Writer, block: bool) !UserIn
 
             var char: u8 = reader.takeByte() catch |err| switch (err) {
                 error.EndOfStream => {
-                    _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                     return UserInput.ExitGameButton;
                 },
                 error.ReadFailed => {
-                    _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                     return err;
                 },
             };
@@ -97,25 +75,21 @@ pub fn InputHandler(reader: *Io.Reader, writer: *Io.Writer, block: bool) !UserIn
 
                         'A' => {
                             // Handle up arrow input
-                            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                             return UserInput.RotCWButton;//UpButton;
                         },
 
                         'B' => {
                             // Handle down arrow input
-                            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                             return UserInput.DownButton;
                         },
 
                         'C' => {
                             // Handle right arrow input
-                            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                             return UserInput.RightButton;
                         },
 
                         'D' => {
                             // Handle left arrow input
-                            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
                             return UserInput.LeftButton;
                         },
 
@@ -144,9 +118,7 @@ pub fn InputHandler(reader: *Io.Reader, writer: *Io.Writer, block: bool) !UserIn
                     break: esc;
                 },
             }
-            _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, old_settings);
 
         }
     }
 }
-

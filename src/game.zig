@@ -43,7 +43,7 @@ pub const Game = struct{
             .tetramino_num = 0,
             .tetramino_seq = buffer,
             .rand = rand,
-            .timeToDrop = 200_000_000,
+            .timeToDrop = 500_000_000,
         };
     }
 

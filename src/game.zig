@@ -5,6 +5,7 @@ const fs = std.fs;
 const File = std.fs.File;
 const tih = @import("termios_input_handler.zig");
 const Tetramino = @import("tetramino.zig").Tetramino;
+const style = @import("style.zig");
 
 pub fn main() !void {
     var prng: std.Random.DefaultPrng = .init(blk: {
@@ -33,6 +34,8 @@ pub const Game = struct{
     tetramino_seq: [7]u8,
     rand: *std.Random,
     timeToDrop: u64, // time in ns to move one down inverse of gravity
+    // timer: std.time.Timer,
+    style: style.Style,
     
     pub fn init(rand: *std.Random) Game {
         var buffer = [_]u8{'I', 'O', 'J', 'L', 'T', 'S', 'Z'};
@@ -44,6 +47,8 @@ pub const Game = struct{
             .tetramino_seq = buffer,
             .rand = rand,
             .timeToDrop = 500_000_000,
+            // .timer = std.time.Timer.start() catch unreachable,
+            .style = style.ascii_style,//base_style,
         };
     }
 
@@ -148,7 +153,7 @@ pub const Game = struct{
                     } else {
                         if ((timer.read() - time_lock) > LOCKTIME) {
                             self.lockTetramino();
-                            self.spawnTetramino();
+                            running = !self.spawnTetramino();
                             in_lock_delay = false;
                             timer.reset();
                         }
@@ -166,13 +171,16 @@ pub const Game = struct{
         self.rand.shuffle(u8, &self.tetramino_seq);
     }
 
-    fn spawnTetramino(self: *Game) void {
+    fn spawnTetramino(self: *Game) bool {
         self.tetramino_num += 1;
         const idx = self.tetramino_num % 7;
         if (idx == 0) {
             self.shufflePieces();
         }
         self.active_tetramino = Tetramino.init(self.tetramino_seq[idx]);
+        return self.state.checkOverlap(
+            self.active_tetramino.get_blocks()
+        );
     }
 
     fn lockTetramino(self: *Game) void {
@@ -262,30 +270,30 @@ pub const Game = struct{
 
     pub fn format(self: *Game, writer: *Io.Writer) !void {
 
-        try writer.print("\x1B[H\x1B[2J\u{250F}", .{});
+        try writer.print("\x1B[H\x1B[2J{s}", .{self.style.upper_left_corner});
         for (0..self.state.columns) |_| {
-            try writer.print("\u{2501}" ** 2, .{});
+            try writer.print("{s}" ** 2, .{self.style.top_border, self.style.top_border});
         }
-        try writer.print("\u{2513}\n", .{});
+        try writer.print("{s}\n", .{self.style.upper_right_corner});
 
         for (2..self.state.rows) |row| {
-            try writer.print("\u{2503}", .{});
+            try writer.print("{s}", .{self.style.left_border});
             for (0..self.state.columns) |col| {
                 if (self.state.array[row][col] or self.active_tetramino.isOccupied(row, col)
             ) {
-                    try writer.print("\u{2588}" ** 2, .{});
+                    try writer.print("{s}", .{self.style.mino_block});
                 } else {
-                    try writer.print("  ", .{});
+                    try writer.print("{s}" ** 2, .{self.style.empty, self.style.empty});
                 }
             }
-            try writer.print("\u{2503}\n", .{});
+            try writer.print("{s}\n", .{self.style.right_border});
         }
 
-        try writer.print("\u{2517}", .{});
+        try writer.print("{s}", .{self.style.lower_left_corner});
         for (0..self.state.columns) |_| {
-            try writer.print("\u{2501}" ** 2, .{});
+            try writer.print("{s}" ** 2, .{self.style.bottom_border, self.style.bottom_border});
         }
-        try writer.print("\u{251B}\n", .{});
+        try writer.print("{s}\n", .{self.style.lower_right_corner});
 
     }
 
@@ -349,13 +357,18 @@ pub fn Matrix(rows: usize, columns: usize) type {
         }
 
         pub fn format(self: *Self, writer: *Io.Writer) !void {
-
+            // Top border row 
             try writer.print("\u{250F}", .{});
             for (0..self.columns) |_| {
                 try writer.print("\u{2501}" ** 2, .{});
             }
+            try writer.print("\u{2530}\n", .{});
+            for (0..self.columns) |_| {
+                try writer.print("\u{2501}", .{});
+            }
             try writer.print("\u{2513}\n", .{});
 
+            // play field and HUD 
             for (0..self.rows) |row| {
                 try writer.print("\u{2503}", .{});
                 for (0..self.columns) |col| {
@@ -366,14 +379,23 @@ pub fn Matrix(rows: usize, columns: usize) type {
                     }
                 }
                 try writer.print("\u{2503}\n", .{});
+
+                for (0..self.columns) |_| {
+                    try writer.print(" ", .{});
+                }
+                try writer.print("\u{2503}\n", .{});
             }
 
             try writer.print("\u{2517}", .{});
             for (0..self.columns) |_| {
                 try writer.print("\u{2501}" ** 2, .{});
             }
-            try writer.print("\u{251B}\n", .{});
+            try writer.print("\u{253B}\n", .{});
 
+            for (0..self.columns) |_| {
+                try writer.print("\u{2501}", .{});
+            }
+            try writer.print("\u{251B}\n", .{});
         }
     };
 }

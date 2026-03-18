@@ -21,6 +21,8 @@ pub fn main() !void {
 
 const MAXROWS = 22;
 const MAXCOLS = 10;
+const LEFTSIDEPANEL = 20; // character width
+const RIGHTSIDEPANEL = 20; // character width
 const BUFFERSIZE = 4096;
 const LOCKTIME = 500_000_000; // 500 ms
 
@@ -36,6 +38,8 @@ pub const Game = struct{
     timeToDrop: u64, // time in ns to move one down inverse of gravity
     // timer: std.time.Timer,
     style: style.Style,
+    level: u64,
+    score: u64,
     
     pub fn init(rand: *std.Random) Game {
         var buffer = [_]u8{'I', 'O', 'J', 'L', 'T', 'S', 'Z'};
@@ -48,7 +52,9 @@ pub const Game = struct{
             .rand = rand,
             .timeToDrop = 500_000_000,
             // .timer = std.time.Timer.start() catch unreachable,
-            .style = style.ascii_style,//base_style,
+            .style = style.base_style,
+            .level = 1,
+            .score = 0,
         };
     }
 
@@ -203,6 +209,10 @@ pub const Game = struct{
         }
     }
 
+    fn increaseLevel(self: *Game) void {
+        self.level += 1;
+    }
+
     fn leftBlocked(self: *Game) bool {
         const block_pos_arr = self.active_tetramino.get_blocks();
         var any_block = false; 
@@ -268,32 +278,62 @@ pub const Game = struct{
         }
     }
 
-    pub fn format(self: *Game, writer: *Io.Writer) !void {
+    pub fn format(self: Game, writer: *Io.Writer) !void {
+        const stl = self.style;
+        const state = self.state;
+        const active_tetramino = self.active_tetramino;
 
-        try writer.print("\x1B[H\x1B[2J{s}", .{self.style.upper_left_corner});
-        for (0..self.state.columns) |_| {
-            try writer.print("{s}" ** 2, .{self.style.top_border, self.style.top_border});
+        // upper border
+        try writer.print("\x1B[H\x1B[2J{s}", .{stl.upper_left_corner});
+        for (0..LEFTSIDEPANEL) |_| {
+            try writer.print("{s}", .{stl.top_border});
         }
-        try writer.print("{s}\n", .{self.style.upper_right_corner});
+        try writer.print("{s}", .{stl.upper_tee});
+        for (0..state.columns) |_| {
+            try writer.print("{s}" ** 2, .{stl.top_border, stl.top_border});
+        }
+        try writer.print("{s}", .{stl.upper_tee});
+        for (0..RIGHTSIDEPANEL) |_| {
+            try writer.print("{s}", .{stl.top_border});
+        }
+        try writer.print("{s}\n", .{stl.upper_right_corner});
 
-        for (2..self.state.rows) |row| {
-            try writer.print("{s}", .{self.style.left_border});
-            for (0..self.state.columns) |col| {
-                if (self.state.array[row][col] or self.active_tetramino.isOccupied(row, col)
+        // game field and HUD
+        for (2..state.rows) |row| {
+            try writer.print("{s}", .{stl.left_border});
+            for (0..LEFTSIDEPANEL) |_| {
+                try writer.print("{s}", .{stl.empty});
+            }
+            try writer.print("{s}", .{stl.left_border});
+            for (0..state.columns) |col| {
+                if (state.array[row][col] or active_tetramino.isOccupied(row, col)
             ) {
-                    try writer.print("{s}", .{self.style.mino_block});
+                    try writer.print("{s}", .{stl.mino_block});
                 } else {
-                    try writer.print("{s}" ** 2, .{self.style.empty, self.style.empty});
+                    try writer.print("{s}" ** 2, .{stl.empty, stl.empty});
                 }
             }
-            try writer.print("{s}\n", .{self.style.right_border});
+            try writer.print("{s}", .{stl.right_border});
+            for (0..RIGHTSIDEPANEL) |_| {
+                try writer.print("{s}", .{stl.empty});
+            }
+            try writer.print("{s}\n", .{stl.right_border});
         }
 
-        try writer.print("{s}", .{self.style.lower_left_corner});
-        for (0..self.state.columns) |_| {
-            try writer.print("{s}" ** 2, .{self.style.bottom_border, self.style.bottom_border});
+        // lower border
+        try writer.print("{s}", .{stl.lower_left_corner});
+        for (0..LEFTSIDEPANEL) |_| {
+            try writer.print("{s}", .{stl.bottom_border});
         }
-        try writer.print("{s}\n", .{self.style.lower_right_corner});
+        try writer.print("{s}", .{stl.lower_tee});
+        for (0..state.columns) |_| {
+            try writer.print("{s}" ** 2, .{stl.bottom_border, stl.bottom_border});
+        }
+        try writer.print("{s}", .{stl.lower_tee});
+        for (0..RIGHTSIDEPANEL) |_| {
+            try writer.print("{s}", .{stl.bottom_border});
+        }
+        try writer.print("{s}\n", .{stl.lower_right_corner});
 
     }
 

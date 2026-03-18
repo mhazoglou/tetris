@@ -1,13 +1,13 @@
-// const std = @import("std");
-// const Io = std.Io;
-// const posix = std.posix;
-// const tih = @import("termios_input_handler.zig");
-// 
-// 
-// // if (!is_posix) {
-// //     @compileError("Only Posix compliant operating systems are supported. :(");
-// // }
-// 
+const std = @import("std");
+const Io = std.Io;
+const posix = std.posix;
+const tih = @import("termios_input_handler.zig");
+
+comptime{
+    if (!tih.is_posix) {
+        @compileError("Only Posix compliant operating systems are supported. :(");
+    }
+}
 // const ProgramState = enum {
 //     StartMenu,
 //     Game,

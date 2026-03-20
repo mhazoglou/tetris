@@ -25,7 +25,7 @@ const LEFTSIDEPANEL = 20; // character width
 const RIGHTSIDEPANEL = 20; // character width
 const BUFFERSIZE = 4096;
 const LOCKTIME = 500_000_000; // 500 ms
-const LINESFORLEVELUP = 5;
+const LINESFORLEVELUP = 10;
 
 pub const State = Matrix(MAXROWS, MAXCOLS);
 
@@ -238,8 +238,9 @@ pub const Game = struct{
 
     fn increaseLevel(self: *Game) void {
         self.level += 1;
-        self.timeToDrop = (800_000_000 - self.level * 7_000_000);
-        // self.timeToDrop = 1_000_000_000 * @as(u64, @intFromFloat(std.math.pow(f64, (0.8 - level * 0.007), level)));
+        const level = @as(f64, @floatFromInt(self.level));
+        // self.timeToDrop = (800_000_000 - self.level * 7_000_000);
+        self.timeToDrop = @as(u64, @intFromFloat(1_000_000_000 * std.math.pow(f64, (0.8 - level * 0.007), level)));
     }
 
     fn leftBlocked(self: *Game) bool {

@@ -6,6 +6,7 @@ const File = std.fs.File;
 const tih = @import("termios_input_handler.zig");
 const Tetramino = @import("tetramino.zig").Tetramino;
 const style = @import("style.zig");
+const colors = @import("colors.zig");
 
 pub fn main() !void {
     var prng: std.Random.DefaultPrng = .init(blk: {
@@ -221,7 +222,7 @@ pub const Game = struct{
         for (block_pos_arr) |block_pos| {
             const row = @as(usize, @intCast(block_pos[0]));
             const col = @as(usize, @intCast(block_pos[1]));
-            self.state.update(row, col, true);
+            self.state.update(row, col, true, self.active_tetramino.get_color());
             if (self.state.checkRowFull(row)) {
                 row_full_arr[idx] = row;
                 idx += 1;
@@ -319,7 +320,7 @@ pub const Game = struct{
         const active_tetramino = self.active_tetramino;
 
         // upper border
-        try writer.print("\x1B[H\x1B[2J{s}", .{stl.upper_left_corner});
+        try writer.print("\x1B[?25l\x1B[H\x1B[2J{s}", .{stl.upper_left_corner});
         for (0..LEFTSIDEPANEL) |_| {
             try writer.print("{s}", .{stl.top_border});
         }
@@ -341,14 +342,15 @@ pub const Game = struct{
             }
             try writer.print("{s}", .{stl.left_border});
             for (0..state.columns) |col| {
-                if (state.array[row][col] or active_tetramino.isOccupied(row, col)
-            ) {
-                    try writer.print("{s}", .{stl.mino_block});
+                if (state.array[row][col]) {
+                    try writer.print("{f}{s}", .{state.color_array[row][col], stl.mino_block});
+                } else if (active_tetramino.isOccupied(row, col)) {
+                    try writer.print("{f}{s}", .{active_tetramino.get_color(), stl.mino_block});
                 } else {
                     try writer.print("{s}", .{stl.empty_block});
                 }
             }
-            try writer.print("{s}", .{stl.right_border});
+            try writer.print("{f}{s}", .{colors.WHITE, stl.right_border});
             const next = self.tetramino_seq[(self.tetramino_num + 1) % self.tetramino_seq.len];
             switch (row) {
                 3 => try writer.print("{[val]s: ^[pad]}", .{.val = "Score:", .pad = RIGHTSIDEPANEL}),
@@ -363,32 +365,32 @@ pub const Game = struct{
                         'I' => try writer.print(" " ** RIGHTSIDEPANEL, .{}),
                         'O' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
-                            try writer.print("{[val]s}{[val]s}", .{.val = stl.mino_block});
+                            try writer.print("{0f}{1s}{1s}", .{colors.YELLOW, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
                         },
                         'J' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val1]s}{[val2]s}{[val2]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("{0f}{1s}    ", .{colors.BLUE, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'L' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val2]s}{[val2]s}{[val1]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("    {0f}{1s}", .{colors.PEACH, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'T' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val2]s}{[val1]s}{[val2]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("  {0f}{1s}  ", .{colors.MAUVE, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'S' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val2]s}{[val1]s}{[val1]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("  {0f}{1s}{1s}", .{colors.GREEN, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'Z' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val1]s}{[val1]s}{[val2]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("{0f}{1s}{1s}  ", .{colors.RED, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         else => unreachable,
@@ -398,37 +400,37 @@ pub const Game = struct{
                     switch (next) {
                         'I' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 8) / 2), .{});
-                            try writer.print("{[val]s}{[val]s}{[val]s}{[val]s}", .{.val = stl.mino_block});
+                            try writer.print("{0f}{1s}{1s}{1s}{1s}", .{colors.SKY, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 8) / 2), .{});
                         },
                         'O' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
-                            try writer.print("{[val]s}{[val]s}", .{.val = stl.mino_block});
+                            try writer.print("{0f}{1s}{1s}", .{colors.YELLOW, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
                         },
                         'J' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val]s}{[val]s}{[val]s}", .{.val = stl.mino_block});
+                            try writer.print("{0f}{1s}{1s}{1s}", .{colors.BLUE, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'L' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val]s}{[val]s}{[val]s}", .{.val = stl.mino_block});
+                            try writer.print("{0f}{1s}{1s}{1s}", .{colors.PEACH, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'T' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val]s}{[val]s}{[val]s}", .{.val = stl.mino_block});
+                            try writer.print("{0f}{1s}{1s}{1s}", .{colors.MAUVE, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'S' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val1]s}{[val1]s}{[val2]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("{0f}{1s}{1s}  ", .{colors.GREEN, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         'Z' => {
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
-                            try writer.print("{[val2]s}{[val1]s}{[val1]s}", .{.val1 = stl.mino_block, .val2 = "  "});
+                            try writer.print("  {0f}{1s}{1s}", .{colors.RED, stl.mino_block});
                             try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
                         },
                         else => unreachable,
@@ -438,7 +440,7 @@ pub const Game = struct{
                     try writer.print(" " ** RIGHTSIDEPANEL, .{});
                 },
             }
-            try writer.print("{s}\n", .{stl.right_border});
+            try writer.print("{f}{s}\n", .{colors.WHITE, stl.right_border});
         }
 
         // lower border
@@ -465,20 +467,24 @@ pub fn Matrix(rows: usize, columns: usize) type {
         rows: usize,
         columns: usize,
         array: [rows][columns]bool,
+        color_array: [rows][columns]colors.Color,
 
         const Self = @This();
 
         pub fn init() Self {
             const array: [rows][columns]bool = .{ .{false} ** columns} ** rows;
+            const clr_array: [rows][columns]colors.Color = .{ .{colors.WHITE} ** columns} ** rows;
             return .{
                 .rows = rows,
                 .columns = columns,
                 .array = array,
+                .color_array = clr_array,
             };
         }
 
-        pub fn update(self: *Self, row: usize, col: usize, val: bool) void {
+        pub fn update(self: *Self, row: usize, col: usize, val: bool, clr: colors.Color) void {
             self.array[row][col] = val;
+            self.color_array[row][col] = clr;
         }
 
         pub fn checkRowFull(self: *Self, row: usize) bool {
@@ -496,9 +502,11 @@ pub fn Matrix(rows: usize, columns: usize) type {
             var r = row;
             while (r > 0) {
                 self.array[r] = self.array[r - 1];
+                self.color_array[r] = self.color_array[r - 1];
                 r -= 1;
             }
             self.array[0] = .{false} ** MAXCOLS;
+            self.color_array[0] = .{colors.WHITE} ** MAXCOLS;
         }
 
         pub fn checkOverlap(self: *const Self, block_pos: [4][2]isize) bool {

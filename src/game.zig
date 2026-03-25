@@ -41,8 +41,9 @@ pub const Game = struct{
     // timer: std.time.Timer,
     style: style.Style,
     lines_cleared: u64,
-    level: u64, // level minus one
+    level_sub_one: u64, // level minus one
     score: u64,
+    hold_tetramino: ?Tetramino,
     
     pub fn init(rand: *std.Random) Game {
         var buffer = [_]u8{'I', 'O', 'J', 'L', 'T', 'S', 'Z'};
@@ -57,8 +58,9 @@ pub const Game = struct{
             // .timer = std.time.Timer.start() catch unreachable,
             .style = style.base_style,
             .lines_cleared = 0,
-            .level = 0,
+            .level_sub_one = 0,
             .score = 0,
+            .hold_tetramino = null,
         };
     }
 
@@ -101,13 +103,15 @@ pub const Game = struct{
                 .LeftButton => {
                     if (!self.leftBlocked()) {
                         self.active_tetramino.move_left();
-                        std.debug.print("{f}", .{self});
+                        try writer.print("{f}", .{self});
+                        try writer.flush();
                     }
                 },
                 .RightButton => {
                     if (!self.rightBlocked()) {
                         self.active_tetramino.move_right();
-                        std.debug.print("{f}", .{self});
+                        try writer.print("{f}", .{self});
+                        try writer.flush();
                     }
                 },
                 .HardDropButton => {
@@ -117,12 +121,14 @@ pub const Game = struct{
                         self.lockTetramino();
                         running = !self.spawnTetramino();
                     }
-                    std.debug.print("{f}", .{self});
+                    try writer.print("{f}", .{self});
+                    try writer.flush();
                 },
                 .DownButton => {
                     if (!self.downBlocked()) {
                         self.active_tetramino.move_down();
-                        std.debug.print("{f}", .{self});
+                        try writer.print("{f}", .{self});
+                        try writer.flush();
                     } else {
                         if (!in_lock_delay) {
                             in_lock_delay = true;
@@ -142,7 +148,8 @@ pub const Game = struct{
                     if (opt_wall_kick) |wall_kick| {
                         self.active_tetramino.rot_CW(wall_kick);
                         in_lock_delay = false;
-                        std.debug.print("{f}", .{self});
+                        try writer.print("{f}", .{self});
+                        try writer.flush();
                     }
                 },
                 .RotCCWButton => {
@@ -150,7 +157,8 @@ pub const Game = struct{
                     if (opt_wall_kick) |wall_kick| {
                         self.active_tetramino.rot_CCW(wall_kick);
                         in_lock_delay = false;
-                        std.debug.print("{f}", .{self});
+                        try writer.print("{f}", .{self});
+                        try writer.flush();
                     }
                 },
                 .PauseButton => {
@@ -189,7 +197,8 @@ pub const Game = struct{
                         }
                     }
                 }
-                std.debug.print("{f}", .{self});
+                try writer.print("{f}", .{self});
+                try writer.flush();
                 time_drop = timer.read();
             }
         } else {
@@ -229,7 +238,7 @@ pub const Game = struct{
             }
         }
         self.lines_cleared += idx;
-        if ((idx > 0) and (@divFloor(self.lines_cleared, LINESFORLEVELUP) > self.level)) {
+        if ((idx > 0) and (@divFloor(self.lines_cleared, LINESFORLEVELUP) > self.level_sub_one)) {
             self.increaseLevel();
         }
         std.mem.sort(usize, &row_full_arr, {}, comptime std.sort.asc(usize));
@@ -239,12 +248,12 @@ pub const Game = struct{
     }
 
     fn increaseLevel(self: *Game) void {
-        self.level += 1;
-        const level = @as(f64, @floatFromInt(self.level));
+        self.level_sub_one += 1;
+        const level_sub_one = @as(f64, @floatFromInt(self.level_sub_one));
         self.timeToDrop = @as(
             u64, 
             @intFromFloat(
-                1_000_000_000 * std.math.pow(f64, (0.8 - level * 0.007), level)
+                1_000_000_000 * std.math.pow(f64, (0.8 - level_sub_one * 0.007), level_sub_one)
             )
         );
     }
@@ -356,7 +365,7 @@ pub const Game = struct{
                 3 => try writer.print("{[val]s: ^[pad]}", .{.val = "Score:", .pad = RIGHTSIDEPANEL}),
                 4 => try writer.print("{[val]: ^[pad]}", .{ .val = self.score, .pad = RIGHTSIDEPANEL}),
                 6 => try writer.print("{[val]s: ^[pad]}", .{ .val = "Level:", .pad = RIGHTSIDEPANEL}),
-                7 => try writer.print("{[val]: ^[pad]}", .{ .val = self.level, .pad = RIGHTSIDEPANEL}),
+                7 => try writer.print("{[val]: ^[pad]}", .{ .val = self.level_sub_one + 1, .pad = RIGHTSIDEPANEL}),
                 9 => try writer.print("{[val]s: ^[pad]}", .{ .val = "Lines:", .pad = RIGHTSIDEPANEL}),
                 10 => try writer.print("{[val]: ^[pad]}", .{ .val = self.lines_cleared,.pad = RIGHTSIDEPANEL}),
                 12 => try writer.print("{[val]s: ^[pad]}", .{ .val = "Next:",.pad = RIGHTSIDEPANEL}),

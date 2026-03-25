@@ -23,104 +23,63 @@ pub const is_posix: bool = switch (builtin.os.tag) {
     else => true,
 };
 
+pub const InputMapping = struct {
+    left: []u8,
+    right: []u8,
+    soft_drop: []u8,
+    hard_drop: []u8,
+    hold: []u8,
+    rotCW: []u8,
+    rotCCW: []u8,
+    pause: []u8,
+    exit: []u8,
+};
+
 pub fn InputHandler(reader: *Io.Reader, writer: *Io.Writer) !UserInput {
 
-    blk: while (true) {
-        const c: u8 = reader.takeByte() catch |err| switch (err) {
+    while (true) {
+        const str: []u8 = reader.takeDelimiterExclusive(0) catch |err| switch (err) {
             error.EndOfStream => {
                 return UserInput.Idle;
             },
             error.ReadFailed => {
                 return err;
             },
+            error.StreamTooLong => {
+                return err;
+            },
         };
-        if (c == '\n') {
+        if (std.mem.eql(u8, str, "\n")) {
             return UserInput.PauseButton;
-        } else if (c == '\t') {
+        }
+        if (std.mem.eql(u8, str, "\t")) {
             return UserInput.PauseButton;
-        } else if (c == ' ') {
+        }
+        if (std.mem.eql(u8, str, " ")) {
             return UserInput.HardDropButton;
-        } else if (c == '\x7F') {
-            continue: blk;
-        } else if (c == '\x1B') {
-
-            var char: u8 = reader.takeByte() catch |err| switch (err) {
-                error.EndOfStream => {
-                    return UserInput.ExitGameButton;
-                },
-                error.ReadFailed => {
-                    return err;
-                },
-            };
-
-            esc: switch (char) {
-                '[' => {
-
-                    char = reader.takeByte() catch |err| switch (err) {
-                        error.EndOfStream => break: esc,
-                        error.ReadFailed => return err,
-                    };
-
-                    switch (char) {
-
-                        '3' => {
-                            char = reader.takeByte() catch |err| switch (err) {
-                                error.EndOfStream => break: esc,
-                                error.ReadFailed => return err,
-                            };
-                            if (char == '~') {
-                                continue: blk;
-                            } else {
-                                break: esc;
-                            }
-                        },
-
-                        'A' => {
-                            // Handle up arrow input
-                            return UserInput.RotCWButton;//UpButton;
-                        },
-
-                        'B' => {
-                            // Handle down arrow input
-                            return UserInput.DownButton;
-                        },
-
-                        'C' => {
-                            // Handle right arrow input
-                            return UserInput.RightButton;
-                        },
-
-                        'D' => {
-                            // Handle left arrow input
-                            return UserInput.LeftButton;
-                        },
-
-                        'H' => {
-                            // Handle Home key
-                            continue: blk; 
-                        },
-
-                        'F' => {
-                            // Handle End key
-                            continue: blk;
-                        },
-                        '5' => continue: esc '~',
-                        '6' => continue: esc '~',
-                        '~' => break: esc,
-                        else => try writer.print(
-                            "failed to handle escape [: {c}", .{char}
-                        ),
-                    }
-
-                    break: esc;
-
-                },
-
-                else => {
-                    break: esc;
-                },
-            }
-
+        }
+        if (std.mem.eql(u8, str, "\x1B")) {
+            return UserInput.ExitGameButton;
+        }
+        if (std.mem.eql(u8, str, "\x1B[A")) {
+            return UserInput.UpButton;
+        } 
+        if (std.mem.eql(u8, str, "\x1B[B")) {
+            return UserInput.DownButton;
+        }
+        if (std.mem.eql(u8, str, "\x1B[C")) {
+            return UserInput.RightButton;
+        }
+        if (std.mem.eql(u8, str, "\x1B[D")) {
+            return UserInput.LeftButton;
+        } else {
+            try writer.print("Unhandled", .{});
+        }
+        if (std.mem.eql(u8, str, "x")) {
+            return UserInput.RotCWButton;
+        }
+        if (std.mem.eql(u8, str, "z")) {
+            return UserInput.RotCCWButton;
         }
     }
 }

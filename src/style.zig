@@ -26,7 +26,7 @@ pub const base_style: Style = .{
     .left_border = "\u{2503}",
     .right_border =  "\u{2503}",
     .empty_block = "  ",
-    .mino_block = "\u{2588}" ** 2,
+    .mino_block = "\u{2588}\u{2588}",
 };
 
 pub const blocky_style: Style = .{

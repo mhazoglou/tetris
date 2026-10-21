@@ -1,8 +1,6 @@
 const std = @import("std");
 const Io = std.Io;
 const posix = std.posix;
-const fs = std.fs;
-const File = std.fs.File;
 const tih = @import("termios_input_handler.zig");
 const Tetramino = @import("tetramino.zig").Tetramino;
 const menu = @import("menu.zig");
@@ -194,7 +192,7 @@ pub const Game = struct{
                         _ = try posix.tcsetattr(tty_fd, posix.TCSA.NOW, new_settings);
                         self.menu.state = .{ .PauseMenu = menu.pauseScreen };
                     },
-                    .ExitGameButton => self.menu.state = .ExitGame,// running = false,
+                    .ExitGameButton => self.menu.state = .ExitGame,
                     .Idle => {},
                 }
 
@@ -262,7 +260,7 @@ pub const Game = struct{
         self.just_held = false;
         const block_pos_arr = self.active_tetramino.get_blocks();
         // initialize with max usize by wrapping subtraction
-        var row_full_arr: [4]usize = .{ @as(usize, 0) -% 1 } ** 4;
+        var row_full_arr: [4]usize = @splat(@as(usize, 0) -% 1);
         var idx: usize = 0;
         for (block_pos_arr) |block_pos| {
             const row = @as(usize, @intCast(block_pos[0]));
@@ -402,7 +400,7 @@ pub const Game = struct{
         }
         try writer.print("{s}", .{stl.upper_tee});
         for (0..state.columns) |_| {
-            try writer.print("{0s}" ** 2, .{stl.top_border});
+            try writer.print("{0s}{0s}", .{stl.top_border});
         }
         try writer.print("{s}", .{stl.upper_tee});
         for (0..RIGHTSIDEPANEL) |_| {
@@ -418,88 +416,88 @@ pub const Game = struct{
                 4 => {
                     if (self.hold_tetramino) |char|{
                         switch (char) {
-                            'I' => try writer.print(" " ** LEFTSIDEPANEL, .{}),
+                            'I' => try writer.print(&@as([LEFTSIDEPANEL]u8, @splat(' ')), .{}),
                             'O' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 4) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 4) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}", .{colors.YELLOW, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 4) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 4) / 2]u8, @splat(' ')), .{});
                             },
                             'J' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}    ", .{colors.BLUE, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'L' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("    {0f}{1s}", .{colors.PEACH, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'T' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("  {0f}{1s}  ", .{colors.MAUVE, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'S' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("  {0f}{1s}{1s}", .{colors.GREEN, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'Z' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}  ", .{colors.RED, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             else => unreachable,
                         }
                     } else {
-                        try writer.print(" " ** LEFTSIDEPANEL, .{});
+                        try writer.print(&@as([LEFTSIDEPANEL]u8, @splat(' ')), .{});
                     }
                 },
                 5 => {
                     if (self.hold_tetramino) |char|{
                         switch (char) {
                             'I' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 8) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 8) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}{1s}{1s}", .{colors.SKY, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 8) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 8) / 2]u8, @splat(' ')), .{});
                             },
                             'O' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 4) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 4) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}", .{colors.YELLOW, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 4) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 4) / 2]u8, @splat(' ')), .{});
                             },
                             'J' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}{1s}", .{colors.BLUE, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'L' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}{1s}", .{colors.PEACH, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'T' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}{1s}", .{colors.MAUVE, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'S' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("{0f}{1s}{1s}  ", .{colors.GREEN, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             'Z' => {
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                                 try writer.print("  {0f}{1s}{1s}", .{colors.RED, stl.mino_block});
-                                try writer.print(" " ** ((LEFTSIDEPANEL - 6) / 2), .{});
+                                try writer.print(&@as([(LEFTSIDEPANEL - 6) / 2]u8, @splat(' ')), .{});
                             },
                             else => unreachable,
                         }
                     } else{
-                        try writer.print(" " ** LEFTSIDEPANEL, .{});
+                        try writer.print(&@as([LEFTSIDEPANEL]u8, @splat(' ')), .{});
                     }
                 },
-                else => try writer.print(" " ** LEFTSIDEPANEL, .{}),
+                else => try writer.print(&@as([LEFTSIDEPANEL]u8, @splat(' ')), .{}),
             }
             try writer.print("{f}{s}", .{colors.WHITE, stl.left_border});
             for (0..state.columns) |col| {
@@ -523,36 +521,36 @@ pub const Game = struct{
                 12 => try writer.print("{[val]s: ^[pad]}", .{ .val = "Next:",.pad = RIGHTSIDEPANEL}),
                 13 => {
                     switch (next) {
-                        'I' => try writer.print(" " ** RIGHTSIDEPANEL, .{}),
+                        'I' => try writer.print(&@as([RIGHTSIDEPANEL]u8, @splat(' ')), .{}),
                         'O' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 4) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}", .{colors.YELLOW, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 4) / 2)]u8, @splat(' ')), .{});
                         },
                         'J' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}    ", .{colors.BLUE, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'L' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("    {0f}{1s}", .{colors.PEACH, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'T' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("  {0f}{1s}  ", .{colors.MAUVE, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'S' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("  {0f}{1s}{1s}", .{colors.GREEN, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'Z' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}  ", .{colors.RED, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         else => unreachable,
                     }
@@ -560,44 +558,44 @@ pub const Game = struct{
                 14 => {
                     switch (next) {
                         'I' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 8) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 8) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}{1s}{1s}", .{colors.SKY, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 8) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 8) / 2)]u8, @splat(' ')), .{});
                         },
                         'O' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 4) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}", .{colors.YELLOW, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 4) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 4) / 2)]u8, @splat(' ')), .{});
                         },
                         'J' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}{1s}", .{colors.BLUE, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'L' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}{1s}", .{colors.PEACH, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'T' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}{1s}", .{colors.MAUVE, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'S' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("{0f}{1s}{1s}  ", .{colors.GREEN, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         'Z' => {
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                             try writer.print("  {0f}{1s}{1s}", .{colors.RED, stl.mino_block});
-                            try writer.print(" " ** ((RIGHTSIDEPANEL - 6) / 2), .{});
+                            try writer.print(&@as([((RIGHTSIDEPANEL - 6) / 2)]u8, @splat(' ')), .{});
                         },
                         else => unreachable,
                     }
                 },
-                else => try writer.print(" " ** RIGHTSIDEPANEL, .{}),
+                else => try writer.print(&@as([RIGHTSIDEPANEL]u8, @splat(' ')), .{}),
             }
             try writer.print("{f}{s}\n", .{colors.WHITE, stl.right_border});
         }
@@ -609,7 +607,7 @@ pub const Game = struct{
         }
         try writer.print("{s}", .{stl.lower_tee});
         for (0..state.columns) |_| {
-            try writer.print("{s}" ** 2, .{stl.bottom_border, stl.bottom_border});
+            try writer.print("{0s}{0s}", .{stl.bottom_border});
         }
         try writer.print("{s}", .{stl.lower_tee});
         for (0..RIGHTSIDEPANEL) |_| {
@@ -631,8 +629,8 @@ pub fn Matrix(rows: usize, columns: usize) type {
         const Self = @This();
 
         pub fn init() Self {
-            const array: [rows][columns]bool = .{ .{false} ** columns} ** rows;
-            const clr_array: [rows][columns]colors.Color = .{ .{colors.WHITE} ** columns} ** rows;
+            const array: [rows][columns]bool = @splat(@splat(false));
+            const clr_array: [rows][columns]colors.Color = @splat(@splat(colors.WHITE));
             return .{
                 .rows = rows,
                 .columns = columns,
@@ -664,8 +662,8 @@ pub fn Matrix(rows: usize, columns: usize) type {
                 self.color_array[r] = self.color_array[r - 1];
                 r -= 1;
             }
-            self.array[0] = .{false} ** MAXCOLS;
-            self.color_array[0] = .{colors.WHITE} ** MAXCOLS;
+            self.array[0] = @splat(false);
+            self.color_array[0] = @splat(colors.WHITE);
         }
 
         pub fn checkOverlap(self: *const Self, block_pos: [4][2]isize) bool {
@@ -688,7 +686,7 @@ pub fn Matrix(rows: usize, columns: usize) type {
             // Top border row 
             try writer.print("\u{250F}", .{});
             for (0..self.columns) |_| {
-                try writer.print("\u{2501}" ** 2, .{});
+                try writer.print("\u{2501}\u{2501}", .{});
             }
             try writer.print("\u{2530}\n", .{});
             for (0..self.columns) |_| {
@@ -701,7 +699,7 @@ pub fn Matrix(rows: usize, columns: usize) type {
                 try writer.print("\u{2503}", .{});
                 for (0..self.columns) |col| {
                     if (self.array[row][col]) {
-                        try writer.print("\u{2588}" ** 2, .{});
+                        try writer.print("\u{2588}\u{2588}", .{});
                     } else {
                         try writer.print("  ", .{});
                     }
@@ -716,7 +714,7 @@ pub fn Matrix(rows: usize, columns: usize) type {
 
             try writer.print("\u{2517}", .{});
             for (0..self.columns) |_| {
-                try writer.print("\u{2501}" ** 2, .{});
+                try writer.print("\u{2501}\u{2501}", .{});
             }
             try writer.print("\u{253B}\n", .{});
 

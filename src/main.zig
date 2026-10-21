@@ -3,7 +3,6 @@ const Game = @import("game.zig").Game;
 const tih = @import("termios_input_handler.zig");
 
 pub fn main() !void {
-
     var gpa = std.heap.DebugAllocator(.{}).init;
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
